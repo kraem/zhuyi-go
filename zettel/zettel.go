@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -111,7 +112,12 @@ func (c *Config) UnlinkedNodes() ([]Zettel, error) {
 	walked := make(map[int]bool, len(fim.fileToInt))
 	c.walkGraph(indexNode, fim, walked)
 
-	return zettelsFromWalked(walked, fim)
+	zs, err := zettelsFromWalked(walked, fim)
+	if err != nil {
+		return nil, err
+	}
+	sortZettelsDate(zs)
+	return zs, nil
 }
 
 // walkGraph walks the graph depth first
@@ -158,6 +164,13 @@ func zettelsFromWalked(walked map[int]bool, fim *fileIntMap) ([]Zettel, error) {
 		}
 	}
 	return unlinked, nil
+}
+
+func sortZettelsDate(zs []Zettel) {
+	// file names are the dates..
+	sort.Slice(zs, func(i, j int) bool {
+		return zs[i].File > zs[j].File
+	})
 }
 
 // TODO
