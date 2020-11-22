@@ -23,7 +23,7 @@ func main() {
 	r := mux.NewRouter()
 	r.Handle("/status", fw.FilterMiddleware(server.StatusHandler(s))).Methods("GET")
 	r.Handle("/d3/graph", fw.FilterMiddleware(server.GraphHandler(s))).Methods("GET")
-	r.Handle("/isolated", fw.FilterMiddleware(server.IsolatedHandler(s))).Methods("GET")
+	r.Handle("/unlinked", fw.FilterMiddleware(server.UnlinkedHandler(s))).Methods("GET")
 	r.Handle("/zettel/add", fw.FilterMiddleware(server.AddZettelHandler(s))).Methods("POST")
 	// TODO Handle options like this for all endpoints
 	r.Handle("/zettel/add", fw.FilterMiddleware(server.AddZettelHandlerOptions(s))).Methods("OPTIONS")

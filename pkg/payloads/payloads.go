@@ -45,7 +45,7 @@ type GraphResponse struct {
 	Error *string `json:"error"`
 }
 
-type IsolatedResponse struct {
+type UnlinkedResponse struct {
 	Payload struct {
 		Zettels []zettel.Zettel `json:"unlinked_zettels"`
 	} `json:"payload"`

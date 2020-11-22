@@ -76,7 +76,7 @@ func AddZettelHandler(s *Server) http.Handler {
 	})
 }
 
-func IsolatedHandler(s *Server) http.Handler {
+func UnlinkedHandler(s *Server) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		setupResponse(&w, r)
@@ -84,9 +84,8 @@ func IsolatedHandler(s *Server) http.Handler {
 			return
 		}
 
-		var resp payloads.IsolatedResponse
+		var resp payloads.UnlinkedResponse
 
-		//zs, err := s.CfgZettel.FindIsolatedVertices()
 		zs, err := s.CfgZettel.UnlinkedNodes()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
