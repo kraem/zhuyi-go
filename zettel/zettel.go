@@ -337,6 +337,26 @@ func (c *Config) mapFileToInt(fullPath bool) (*fileIntMap, error) {
 	return &fim, nil
 }
 
+func (c *Config) DelZettel(filename string) error {
+	fp := filepath.Join(c.ZettelPath, filename)
+	exist, err := fs.PathExists(fp)
+	if err != nil {
+		return err
+	}
+	// TODO
+	// this might not be needed
+	// as os.Remove calls unlink..
+	if !exist {
+		err := fmt.Errorf("file doesn't exist: %v", fp)
+		return err
+	}
+	err = os.Remove(fp)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *Config) CreateZettel(title, body string) (fileName string, err error) {
 	timeNow := time.Now()
 	zettelDateFm := timeNow.Format(timeFormatFm)

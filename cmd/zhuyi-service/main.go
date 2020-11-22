@@ -25,6 +25,7 @@ func main() {
 	r.Handle("/d3/graph", fw.FilterMiddleware(server.GraphHandler(s))).Methods("GET")
 	r.Handle("/unlinked", fw.FilterMiddleware(server.UnlinkedHandler(s))).Methods("GET")
 	r.Handle("/zettel/add", fw.FilterMiddleware(server.AddZettelHandler(s))).Methods("POST")
+	r.Handle("/zettel/del", fw.FilterMiddleware(server.DelZettelHandler(s))).Methods("POST")
 	// TODO Handle options like this for all endpoints
 	r.Handle("/zettel/add", fw.FilterMiddleware(server.AddZettelHandlerOptions(s))).Methods("OPTIONS")
 

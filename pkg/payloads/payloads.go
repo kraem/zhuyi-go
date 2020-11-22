@@ -51,3 +51,13 @@ type UnlinkedResponse struct {
 	} `json:"payload"`
 	Error *string `json:"error"`
 }
+
+type DelRequest struct {
+	Payload struct {
+		FileName string `json:"file_name"`
+	} `json:"payload"`
+}
+
+type DelResponse struct {
+	Error *string `json:"error"`
+}

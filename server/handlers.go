@@ -76,6 +76,42 @@ func AddZettelHandler(s *Server) http.Handler {
 	})
 }
 
+func DelZettelHandler(s *Server) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		setupResponse(&w, r)
+		if (*r).Method == "OPTIONS" {
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		var resp payloads.DelResponse
+
+		var payloadIncoming payloads.DelRequest
+		err := json.NewDecoder(r.Body).Decode(&payloadIncoming)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			errString := err.Error()
+			resp.Error = &errString
+			json.NewEncoder(w).Encode(resp)
+			log.LogError(err)
+			return
+		}
+
+		err = s.CfgZettel.DelZettel(payloadIncoming.Payload.FileName)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			errString := err.Error()
+			resp.Error = &errString
+			json.NewEncoder(w).Encode(resp)
+			log.LogError(err)
+			return
+		}
+
+		json.NewEncoder(w).Encode(resp)
+	})
+}
+
 func UnlinkedHandler(s *Server) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
