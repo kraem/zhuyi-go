@@ -365,8 +365,8 @@ func (c *Config) CreateZettel(title, body string) (fileName string, err error) {
 
 	exist, err := fs.PathExists(zettelFilePath)
 	if err != nil {
-		log.LogError(err)
-		os.Exit(1)
+		err := fmt.Errorf("file already exists")
+		return "", err
 	}
 
 	if exist {
