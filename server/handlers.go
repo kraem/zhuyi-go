@@ -8,12 +8,6 @@ import (
 	"github.com/kraem/zhuyi-go/pkg/payloads"
 )
 
-type StatusResponse struct {
-	Payload struct {
-		Status string `json:"status"`
-	} `json:"payload"`
-}
-
 func AddNodeHandlerOptions(s *Server) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setupResponse(&w, r)
@@ -32,13 +26,13 @@ func AddNodeHandler(s *Server) http.Handler {
 		var resp payloads.AppendResponse
 
 		var payloadIncoming payloads.AppendRequest
+
 		err := json.NewDecoder(r.Body).Decode(&payloadIncoming)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			errString := err.Error()
-			resp.Error = &errString
+			var fn *string
+			resp = payloads.NewAppendResponse(fn, err)
 			json.NewEncoder(w).Encode(resp)
-			//fmt.Printf("ERROR - Unable to unmarshal append-request. Please report issue @ GH\nerr: %s\n", err)
 			log.LogError(err)
 			return
 		}
@@ -46,14 +40,14 @@ func AddNodeHandler(s *Server) http.Handler {
 		nodeFileName, err := s.CfgNetwork.CreateNode(payloadIncoming.Payload.Title, payloadIncoming.Payload.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			errString := err.Error()
-			resp.Error = &errString
+			var fn *string
+			resp = payloads.NewAppendResponse(fn, err)
 			json.NewEncoder(w).Encode(resp)
 			log.LogError(err)
 			return
 		}
 
-		resp.Payload.FileName = &nodeFileName
+		resp = payloads.NewAppendResponse(&nodeFileName, nil)
 
 		json.NewEncoder(w).Encode(resp)
 	})
@@ -155,7 +149,7 @@ func StatusHandler(a *Server) http.Handler {
 		if (*r).Method == "OPTIONS" {
 			return
 		}
-		var resp StatusResponse
+		var resp payloads.StatusResponse
 
 		resp.Payload.Status = "API is up and running"
 

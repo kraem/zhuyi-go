@@ -61,3 +61,9 @@ type DelRequest struct {
 type DelResponse struct {
 	Error *string `json:"error"`
 }
+
+type StatusResponse struct {
+	Payload struct {
+		Status string `json:"status"`
+	} `json:"payload"`
+}
