@@ -1,4 +1,4 @@
-package zettel
+package network
 
 import (
 	"bufio"
@@ -41,7 +41,7 @@ const abc = "abcdefghijklmnopqrstuvwxyz"
 var typeExtractor = regexp.MustCompile("(.*): (.*)")
 var linkExtractor = regexp.MustCompile(`\[([^\[]*)\](\((.*)\))`)
 
-type Zettel struct {
+type Node struct {
 	// TODO
 	// remove these json tags
 	// and convert to another payload struct
@@ -102,22 +102,22 @@ func extractFrontMatterFields(path string) (fields map[string]string, err error)
 	return fields, nil
 }
 
-func (c *Config) UnlinkedNodes() ([]Zettel, error) {
+func (c *Config) UnlinkedNodes() ([]Node, error) {
 	fim, err := c.mapFileToInt(true)
 	if err != nil {
 		return nil, err
 	}
 
-	indexNode := fim.fileToInt[c.ZettelPath+index+mdExtension]
+	indexNode := fim.fileToInt[c.NetworkPath+index+mdExtension]
 	walked := make(map[int]bool, len(fim.fileToInt))
 	c.walkGraph(indexNode, fim, walked)
 
-	zs, err := zettelsFromWalked(walked, fim)
+	ns, err := nodesFromWalked(walked, fim)
 	if err != nil {
 		return nil, err
 	}
-	sortZettelsDate(zs)
-	return zs, nil
+	sortNodesDate(ns)
+	return ns, nil
 }
 
 // walkGraph walks the graph depth first
@@ -133,7 +133,7 @@ func (c *Config) walkGraph(n int, g *fileIntMap, walked map[int]bool) {
 		return
 	}
 	for _, l := range links {
-		lp := c.ZettelPath + l
+		lp := c.NetworkPath + l
 		li := g.fileToInt[lp]
 		if !walked[li] {
 			c.walkGraph(li, g, walked)
@@ -141,8 +141,8 @@ func (c *Config) walkGraph(n int, g *fileIntMap, walked map[int]bool) {
 	}
 }
 
-func zettelsFromWalked(walked map[int]bool, fim *fileIntMap) ([]Zettel, error) {
-	unlinked := make([]Zettel, 0)
+func nodesFromWalked(walked map[int]bool, fim *fileIntMap) ([]Node, error) {
+	unlinked := make([]Node, 0)
 	for k, v := range fim.intToFile {
 		if !walked[k] {
 			fmFields, err := extractFrontMatterFields(v)
@@ -151,31 +151,31 @@ func zettelsFromWalked(walked map[int]bool, fim *fileIntMap) ([]Zettel, error) {
 				continue
 			}
 			_, fileName := path.Split(v)
-			z := Zettel{
+			n := Node{
 				Title: fmFields["title"],
 				File:  fileName,
 				Date:  fmFields["date"],
 				// TODO
-				// operate on zettels like objects will make
+				// operate on nodes like objects will make
 				// this come by itself
 				//Links: links,
 			}
-			unlinked = append(unlinked, z)
+			unlinked = append(unlinked, n)
 		}
 	}
 	return unlinked, nil
 }
 
-func sortZettelsDate(zs []Zettel) {
+func sortNodesDate(ns []Node) {
 	// file names are the dates..
-	sort.Slice(zs, func(i, j int) bool {
-		return zs[i].File > zs[j].File
+	sort.Slice(ns, func(i, j int) bool {
+		return ns[i].File > ns[j].File
 	})
 }
 
 // TODO
 // this is broken..
-func (c *Config) FindIsolatedVertices() ([]Zettel, error) {
+func (c *Config) FindIsolatedVertices() ([]Node, error) {
 
 	// unfortunately we need to traverse the dir
 	// two times since we need the number of files,
@@ -186,19 +186,19 @@ func (c *Config) FindIsolatedVertices() ([]Zettel, error) {
 		return nil, err
 	}
 
-	adjMatrix, fileZsMap, err := c.buildAdjacencyMatrix(*fim)
+	adjMatrix, fileNsMap, err := c.buildAdjacencyMatrix(*fim)
 	if err != nil {
 		return nil, err
 	}
 
 	vs := findIsolatedVertices(adjMatrix)
-	filteredZs := make([]Zettel, 0)
+	filteredNs := make([]Node, 0)
 	for _, i := range vs {
 		fn := fim.intToFile[i]
-		filteredZs = append(filteredZs, fileZsMap[fn])
+		filteredNs = append(filteredNs, fileNsMap[fn])
 	}
 
-	return filteredZs, nil
+	return filteredNs, nil
 }
 
 // creating a representation of a directed graph with an adjacency matrix
@@ -217,17 +217,17 @@ func (c *Config) FindIsolatedVertices() ([]Zettel, error) {
 // 	    b   0 0
 // 	    -
 // also:
-// returning the zettels mapped to filename here so we don't want to iterate once more
+// returning the nodes mapped to filename here so we don't want to iterate once more
 // to create them. we're already extracting fm here anyway..
-func (c *Config) buildAdjacencyMatrix(fim fileIntMap) ([][]int, map[string]Zettel, error) {
-	path := c.ZettelPath
+func (c *Config) buildAdjacencyMatrix(fim fileIntMap) ([][]int, map[string]Node, error) {
+	path := c.NetworkPath
 
 	adjMatrix := make([][]int, len(fim.fileToInt))
 	for i := range adjMatrix {
 		adjMatrix[i] = make([]int, len(fim.fileToInt))
 	}
 
-	zs := make(map[string]Zettel, 0)
+	ns := make(map[string]Node, 0)
 
 	// could be implemented with filepath.Walk(path, func(path string, info os.Fileinfo, errerror) error { //do stuff })
 	// but let's keep it simple as we don't use subdirs
@@ -256,14 +256,14 @@ func (c *Config) buildAdjacencyMatrix(fim fileIntMap) ([][]int, map[string]Zette
 			continue
 		}
 
-		z := Zettel{
+		n := Node{
 			Title: fmFields["title"],
 			File:  fileName,
 			Date:  fmFields["date"],
 			Links: links,
 		}
 
-		zs[fileName] = z
+		ns[fileName] = n
 
 		for _, linkedFile := range links {
 			origFileInt := fim.fileToInt[fileName]
@@ -272,7 +272,7 @@ func (c *Config) buildAdjacencyMatrix(fim fileIntMap) ([][]int, map[string]Zette
 		}
 	}
 
-	return adjMatrix, zs, nil
+	return adjMatrix, ns, nil
 }
 
 // TODO
@@ -314,7 +314,7 @@ func newFileIntMap() fileIntMap {
 }
 
 func (c *Config) mapFileToInt(fullPath bool) (*fileIntMap, error) {
-	path := c.ZettelPath
+	path := c.NetworkPath
 
 	nrVertices := 0
 
@@ -350,8 +350,8 @@ func (c *Config) mapFileToInt(fullPath bool) (*fileIntMap, error) {
 	return &fim, nil
 }
 
-func (c *Config) DelZettel(filename string) error {
-	fp := filepath.Join(c.ZettelPath, filename)
+func (c *Config) DelNode(filename string) error {
+	fp := filepath.Join(c.NetworkPath, filename)
 	exist, err := fs.PathExists(fp)
 	if err != nil {
 		return err
@@ -370,13 +370,13 @@ func (c *Config) DelZettel(filename string) error {
 	return nil
 }
 
-func (c *Config) CreateZettel(title, body string) (fileName string, err error) {
+func (c *Config) CreateNode(title, body string) (fileName string, err error) {
 	timeNow := time.Now()
-	zettelDateFm := timeNow.Format(timeFormatFm)
-	zettelFileName := timeNow.Format(timeFormatFile)
-	zettelFilePath := c.ZettelPath + zettelFileName + mdExtension
+	nodeDateFm := timeNow.Format(timeFormatFm)
+	nodeFileName := timeNow.Format(timeFormatFile)
+	nodeFilePath := c.NetworkPath + nodeFileName + mdExtension
 
-	exist, err := fs.PathExists(zettelFilePath)
+	exist, err := fs.PathExists(nodeFilePath)
 	if err != nil {
 		err := fmt.Errorf("file already exists")
 		return "", err
@@ -385,19 +385,19 @@ func (c *Config) CreateZettel(title, body string) (fileName string, err error) {
 	if exist {
 		for i := range abc {
 			if i == 0 {
-				zettelFileName = zettelFileName + string(abc[i])
-				zettelFilePath = c.ZettelPath + zettelFileName + mdExtension
+				nodeFileName = nodeFileName + string(abc[i])
+				nodeFilePath = c.NetworkPath + nodeFileName + mdExtension
 			} else if i == (len(abc) - 1) {
 				err := fmt.Errorf("too many files created in one minute")
 				log.LogError(err)
 				return "", err
 			} else {
-				runes := []rune(zettelFileName)
-				runes[len(zettelFileName)-1] = rune(abc[i])
-				zettelFileName = string(runes)
-				zettelFilePath = c.ZettelPath + zettelFileName + mdExtension
+				runes := []rune(nodeFileName)
+				runes[len(nodeFileName)-1] = rune(abc[i])
+				nodeFileName = string(runes)
+				nodeFilePath = c.NetworkPath + nodeFileName + mdExtension
 			}
-			exist, err = fs.PathExists(zettelFilePath)
+			exist, err = fs.PathExists(nodeFilePath)
 			if err != nil {
 				log.LogError(err)
 				return "", err
@@ -410,7 +410,7 @@ func (c *Config) CreateZettel(title, body string) (fileName string, err error) {
 
 	}
 
-	f, err := os.Create(zettelFilePath)
+	f, err := os.Create(nodeFilePath)
 	if err != nil {
 		log.LogError(err)
 		return "", err
@@ -419,13 +419,13 @@ func (c *Config) CreateZettel(title, body string) (fileName string, err error) {
 
 	f.Write([]byte(yamlFmDelim + "\n"))
 	f.Write([]byte(yamlFmTitleField + title + "\n"))
-	f.Write([]byte(yamlFmDateField + zettelDateFm + "\n"))
+	f.Write([]byte(yamlFmDateField + nodeDateFm + "\n"))
 	f.Write([]byte(yamlFmDelim + "\n\n"))
 	f.Write([]byte(body + "\n"))
 
-	zettelFileName = zettelFileName + mdExtension
+	nodeFileName = nodeFileName + mdExtension
 
-	return zettelFileName, nil
+	return nodeFileName, nil
 }
 
 // TODO
@@ -434,11 +434,11 @@ func (c *Config) CreateZettel(title, body string) (fileName string, err error) {
 // 2. test with fe
 
 type D3jsGraph struct {
-	Nodes []Node `json:"nodes,omitempty"`
+	Nodes []D3Node `json:"nodes,omitempty"`
 	Links []Link `json:"links,omitempty"`
 }
 
-type Node struct {
+type D3Node struct {
 	Id     string `json:"id"`
 	Radius string `json:"radius"`
 }
@@ -450,46 +450,46 @@ type Link struct {
 }
 
 func (c *Config) CreateD3jsGraph() (*D3jsGraph, error) {
-	d3AdjList, err := buildD3AdjacancyList(c.ZettelPath)
+	d3AdjList, err := buildD3AdjacancyList(c.NetworkPath)
 	if err != nil {
 		return nil, err
 	}
 
 	var g D3jsGraph
 
-	for _, z := range d3AdjList {
+	for _, n := range d3AdjList {
 
-		radius := strconv.Itoa(len(z.Links) + 2)
+		radius := strconv.Itoa(len(n.Links) + 2)
 
-		outputNode := Node{
-			Id:     z.Title,
+		outputNode := D3Node{
+			Id:     n.Title,
 			Radius: radius,
 		}
 
 		g.Nodes = append(g.Nodes, outputNode)
 
-		for i := range z.Links {
-			link := z.Links[i]
+		for i := range n.Links {
+			link := n.Links[i]
 			_, ok := d3AdjList[link]
 			switch ok {
 			// TODO
 			// can't remember why we differantiate between these
 			case true:
 				outputLink := Link{
-					Source: z.Title,
+					Source: n.Title,
 					Target: d3AdjList[link].Title,
 					Value:  "2",
 				}
 				g.Links = append(g.Links, outputLink)
 			case false:
-				outputNode := Node{
+				outputNode := D3Node{
 					Id:     link,
 					Radius: "2",
 				}
 
 				g.Nodes = append(g.Nodes, outputNode)
 				outputLink := Link{
-					Source: z.Title,
+					Source: n.Title,
 					Target: outputNode.Id,
 					Value:  "2",
 				}
@@ -502,11 +502,11 @@ func (c *Config) CreateD3jsGraph() (*D3jsGraph, error) {
 }
 
 // returns hash map of file names
-// each filename contains a zettel object
+// each filename contains a node object
 // which in turn includes all of its
 // filenames/http-links it links to
-func buildD3AdjacancyList(path string) (map[string]Zettel, error) {
-	fileToZettelMap := make(map[string]Zettel)
+func buildD3AdjacancyList(path string) (map[string]Node, error) {
+	fileToNodeMap := make(map[string]Node)
 
 	// could be implemented with filepath.Walk(path, func(path string, info os.Fileinfo, errerror) error { //do stuff })
 	// but let's keep it simple as we don't use subdirs
@@ -541,15 +541,15 @@ func buildD3AdjacancyList(path string) (map[string]Zettel, error) {
 			continue
 		}
 
-		zettel := Zettel{
+		n := Node{
 			Title: fmFields["title"],
 			File:  fileName,
 			Date:  fmFields["date"],
 			Links: links,
 		}
 
-		fileToZettelMap[fileName] = zettel
+		fileToNodeMap[fileName] = n
 	}
 
-	return fileToZettelMap, nil
+	return fileToNodeMap, nil
 }

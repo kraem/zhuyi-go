@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/kraem/zhuyi-go/pkg/payloads"
-	"github.com/kraem/zhuyi-go/zettel"
+	"github.com/kraem/zhuyi-go/network"
 )
 
 func writeOutput(fileName *string, err error) {
@@ -19,7 +19,7 @@ func writeOutput(fileName *string, err error) {
 }
 
 func main() {
-	c, err := zettel.NewConfig()
+	c, err := network.NewConfig()
 	if err != nil {
 		writeOutput(nil, err)
 		os.Exit(1)
@@ -30,7 +30,7 @@ func main() {
 	var body = flag.String("body", "", "help message for flag n")
 	flag.Parse()
 
-	fileName, err := c.CreateZettel(*title, *body)
+	fileName, err := c.CreateNode(*title, *body)
 
 	writeOutput(&fileName, nil)
 }

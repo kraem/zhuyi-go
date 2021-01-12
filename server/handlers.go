@@ -14,13 +14,13 @@ type StatusResponse struct {
 	} `json:"payload"`
 }
 
-func AddZettelHandlerOptions(s *Server) http.Handler {
+func AddNodeHandlerOptions(s *Server) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setupResponse(&w, r)
 	})
 }
 
-func AddZettelHandler(s *Server) http.Handler {
+func AddNodeHandler(s *Server) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		setupResponse(&w, r)
@@ -43,7 +43,7 @@ func AddZettelHandler(s *Server) http.Handler {
 			return
 		}
 
-		zettelFileName, err := s.CfgZettel.CreateZettel(payloadIncoming.Payload.Title, payloadIncoming.Payload.Body)
+		nodeFileName, err := s.CfgNetwork.CreateNode(payloadIncoming.Payload.Title, payloadIncoming.Payload.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			errString := err.Error()
@@ -53,13 +53,13 @@ func AddZettelHandler(s *Server) http.Handler {
 			return
 		}
 
-		resp.Payload.FileName = &zettelFileName
+		resp.Payload.FileName = &nodeFileName
 
 		json.NewEncoder(w).Encode(resp)
 	})
 }
 
-func DelZettelHandler(s *Server) http.Handler {
+func DelNodeHandler(s *Server) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		setupResponse(&w, r)
@@ -81,7 +81,7 @@ func DelZettelHandler(s *Server) http.Handler {
 			return
 		}
 
-		err = s.CfgZettel.DelZettel(payloadIncoming.Payload.FileName)
+		err = s.CfgNetwork.DelNode(payloadIncoming.Payload.FileName)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			errString := err.Error()
@@ -105,7 +105,7 @@ func UnlinkedHandler(s *Server) http.Handler {
 
 		var resp payloads.UnlinkedResponse
 
-		zs, err := s.CfgZettel.UnlinkedNodes()
+		ns, err := s.CfgNetwork.UnlinkedNodes()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			errString := err.Error()
@@ -115,7 +115,7 @@ func UnlinkedHandler(s *Server) http.Handler {
 			return
 		}
 
-		resp.Payload.Zettels = zs
+		resp.Payload.Nodes = ns
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
@@ -132,7 +132,7 @@ func GraphHandler(s *Server) http.Handler {
 
 		var resp payloads.GraphResponse
 
-		g, err := s.CfgZettel.CreateD3jsGraph()
+		g, err := s.CfgNetwork.CreateD3jsGraph()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			errString := err.Error()

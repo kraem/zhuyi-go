@@ -1,21 +1,21 @@
-package zettel
+package network
 
 import (
 	"github.com/kraem/zhuyi-go/pkg/env"
 	"github.com/kraem/zhuyi-go/pkg/fs"
 )
 
-const ZETTEL_PATH = "ZETTEL_PATH"
+const NETWORK_PATH = "NETWORK_PATH"
 
 type Config struct {
-	ZettelPath string
+	NetworkPath string
 }
 
 func NewConfig() (*Config, error) {
 	cfg := &Config{
-		ZettelPath: fs.AppendTrailingSlash(env.GetEnvOrExit(ZETTEL_PATH)),
+		NetworkPath: fs.AppendTrailingSlash(env.GetEnvOrExit(NETWORK_PATH)),
 	}
-	if err := fs.HavePermissions(cfg.ZettelPath); err != nil {
+	if err := fs.HavePermissions(cfg.NetworkPath); err != nil {
 		return nil, err
 	}
 	return cfg, nil

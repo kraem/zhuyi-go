@@ -5,13 +5,13 @@ import (
 
 	"github.com/kraem/zhuyi-go/pkg/env"
 	"github.com/kraem/zhuyi-go/pkg/log"
-	"github.com/kraem/zhuyi-go/zettel"
+	"github.com/kraem/zhuyi-go/network"
 )
 
 const LISTEN_ADDR = "LISTEN_ADDR"
 
 type Server struct {
-	CfgZettel *zettel.Config
+	CfgNetwork *network.Config
 	Cfg       *config
 }
 
@@ -20,13 +20,13 @@ type config struct {
 }
 
 func NewServer() *Server {
-	c, err := zettel.NewConfig()
+	c, err := network.NewConfig()
 	if err != nil {
 		log.LogError(err)
 		os.Exit(1)
 	}
 	return &Server{
-		CfgZettel: c,
+		CfgNetwork: c,
 		Cfg:       Config(),
 	}
 }

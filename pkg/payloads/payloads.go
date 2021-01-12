@@ -3,7 +3,7 @@ package payloads
 import (
 	"fmt"
 
-	"github.com/kraem/zhuyi-go/zettel"
+	"github.com/kraem/zhuyi-go/network"
 )
 
 type AppendRequest struct {
@@ -40,14 +40,14 @@ func NewAppendResponse(fn *string, err error) AppendResponse {
 
 type GraphResponse struct {
 	Payload struct {
-		Graph *zettel.D3jsGraph `json:"graph,omitempty"`
+		Graph *network.D3jsGraph `json:"graph,omitempty"`
 	} `json:"payload"`
 	Error *string `json:"error"`
 }
 
 type UnlinkedResponse struct {
 	Payload struct {
-		Zettels []zettel.Zettel `json:"unlinked_zettels"`
+		Nodes []network.Node `json:"unlinked_nodes"`
 	} `json:"payload"`
 	Error *string `json:"error"`
 }
