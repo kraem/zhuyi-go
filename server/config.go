@@ -33,6 +33,6 @@ func NewServer() *Server {
 
 func Config() *config {
 	return &config{
-		Addr: env.GetEnv(LISTEN_ADDR, ":8000"),
+		Addr: env.GetEnvOrExit(LISTEN_ADDR),
 	}
 }

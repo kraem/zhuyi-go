@@ -2,10 +2,8 @@ package server
 
 import (
 	"encoding/json"
-	"net"
 	"net/http"
 
-	"github.com/jpillora/ipfilter"
 	"github.com/kraem/zhuyi-go/pkg/log"
 	"github.com/kraem/zhuyi-go/pkg/payloads"
 )
@@ -14,21 +12,6 @@ type StatusResponse struct {
 	Payload struct {
 		Status string `json:"status"`
 	} `json:"payload"`
-}
-
-type IpFilter struct {
-	*ipfilter.IPFilter
-}
-
-func (f *IpFilter) FilterMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
-		if !f.Allowed(ip) {
-			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
 }
 
 func AddZettelHandlerOptions(s *Server) http.Handler {
