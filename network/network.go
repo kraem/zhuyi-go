@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -435,15 +434,16 @@ func (c *Config) CreateNode(title, body string) (fileName string, err error) {
 
 type D3jsGraph struct {
 	Nodes []D3Node `json:"nodes,omitempty"`
-	Links []Link   `json:"links,omitempty"`
+	Links []D3Link `json:"links,omitempty"`
 }
 
 type D3Node struct {
 	Id     string `json:"id"`
+	Title  string `json:"title"`
 	Radius string `json:"radius"`
 }
 
-type Link struct {
+type D3Link struct {
 	Source string `json:"source"`
 	Target string `json:"target"`
 	Value  string `json:"value"`
@@ -457,62 +457,79 @@ func (c *Config) CreateD3jsGraph() (*D3jsGraph, error) {
 
 	var g D3jsGraph
 
-	for _, n := range filenameToNode {
+	created := make(map[string]bool)
+	createdHttpLinks := make(map[string]bool)
 
-		radius := strconv.Itoa(len(n.Links) + 2)
-
-		outputNode := D3Node{
-			Id:     n.Title,
-			Radius: radius,
+	for f, n := range filenameToNode {
+		if !created[f] {
+			node := D3Node{
+				Id:    f,
+				Title: n.Title,
+			}
+			g.Nodes = append(g.Nodes, node)
+			created[f] = true
 		}
 
-		g.Nodes = append(g.Nodes, outputNode)
+		for _, l := range n.Links {
+			// TODO
+			// this is ugly!
+			// we need to differantiate between http links
+			// and local md links.
 
-		for i := range n.Links {
-			link := n.Links[i]
-			_, ok := filenameToNode[link]
-			switch ok {
-			case true:
-				outputLink := Link{
-					Source: n.Title,
-					Target: filenameToNode[link].Title,
-					Value:  "2",
+			// proposals for solutions:
+
+			// 1. have a recursive data structure of nodes holding
+			//    other nodes. though we could end up with infinite
+			//    recursion with this solution.
+
+			// 2. we could have the links as not simple strings,
+			//    but structs with title already extracted.
+
+			// see comment below..
+
+			if strings.HasPrefix(l, "http") {
+				if !createdHttpLinks[l] {
+					node := D3Node{
+						Id:    l,
+						Title: l,
+					}
+					g.Nodes = append(g.Nodes, node)
+					createdHttpLinks[l] = true
 				}
-				g.Links = append(g.Links, outputLink)
-			case false:
-				outputNode := D3Node{
-					Id:     link,
-					Radius: "2",
+			} else if !created[l] {
+				fullPath := filepath.Join(c.NetworkPath, l)
+				// since all nodes (`n`) only contains strings as their links
+				// we need to extract the frontmatter fields to get ahold
+				// of their titles.
+
+				// this also means we can get in a situation
+				// where we have a link w/o http prefix and there
+				// are no local files either.
+				// example:
+				// [source](`man zfs create`)
+				if !strings.HasSuffix(l, mdExtension) {
+					continue
 				}
-
-				g.Nodes = append(g.Nodes, outputNode)
-				outputLink := Link{
-					Source: n.Title,
-					Target: outputNode.Id,
-					Value:  "2",
+				fmFields, err := extractFrontMatterFields(fullPath)
+				if err != nil {
+					log.LogError(err)
+					continue
 				}
-				g.Links = append(g.Links, outputLink)
-
-				// NB we create a node in our "network" we've
-				// built up, apart from only creating only in
-				// the d3 graph.
-
-				// this way we know in the switch case if the
-				// node has already been created.
-				// not pretty.. but does the job for now..
-
-				// i thought this was why i got duplicate nodes
-				// rendered in d3, but with this check the output
-				// json-graph doesn't include duplicates ->
-				// must be logic error in my d3 script..
-				networkNode := Node{
-					Title: link,
+				node := D3Node{
+					Id:    l,
+					Title: fmFields["title"],
 				}
-				filenameToNode[link] = networkNode
+				g.Nodes = append(g.Nodes, node)
+				created[l] = true
 			}
+			link := D3Link{
+				Source: n.File,
+				Target: l,
+				Value:  "2",
+			}
+			g.Links = append(g.Links, link)
 		}
 	}
-
 	return &g, nil
 }
 
@@ -521,6 +538,13 @@ func (c *Config) CreateD3jsGraph() (*D3jsGraph, error) {
 // which in turn includes all of its
 // filenames/http-links it links to
 func linksPerFilename(path string) (map[string]Node, error) {
+	// TODO
+	// a better solution would be to walk the filesystem and build up nodes with
+	// their filename, title, etc
+	// and after that intitial walk we build up the links
+	// (that way we can access the title and filename at all times)
+	// see comment on solutions in:
+	// CreateD3jsGraph()
 	fileToNodeMap := make(map[string]Node)
 
 	// could be implemented with filepath.Walk(path, func(path string, info os.Fileinfo, errerror) error { //do stuff })
@@ -550,6 +574,10 @@ func linksPerFilename(path string) (map[string]Node, error) {
 		//	continue
 		//}
 
+		// TODO
+		// check for duplicate links
+		// tested against `/test/network_1`, it doesn't error out,
+		// but we get unnecessary svg lines between nodes.
 		links, err := extractMarkdownLinks(fullPath)
 		if err != nil {
 			log.LogError(err)
