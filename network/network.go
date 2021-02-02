@@ -472,10 +472,6 @@ func (c *Config) CreateD3jsGraph() (*D3jsGraph, error) {
 			link := n.Links[i]
 			_, ok := filenameToNode[link]
 			switch ok {
-			// TODO
-			// fix bug where we create multiple nodes for http-links.
-			// they are created since we don't verify we have created
-			// them before..
 			case true:
 				outputLink := Link{
 					Source: n.Title,
@@ -496,6 +492,23 @@ func (c *Config) CreateD3jsGraph() (*D3jsGraph, error) {
 					Value:  "2",
 				}
 				g.Links = append(g.Links, outputLink)
+
+				// NB we create a node in our "network" we've
+				// built up, apart from only creating only in
+				// the d3 graph.
+
+				// this way we know in the switch case if the
+				// node has already been created.
+				// not pretty.. but does the job for now..
+
+				// i thought this was why i got duplicate nodes
+				// rendered in d3, but with this check the output
+				// json-graph doesn't include duplicates ->
+				// must be logic error in my d3 script..
+				networkNode := Node{
+					Title: link,
+				}
+				filenameToNode[link] = networkNode
 			}
 		}
 	}
