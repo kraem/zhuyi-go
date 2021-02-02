@@ -435,7 +435,7 @@ func (c *Config) CreateNode(title, body string) (fileName string, err error) {
 
 type D3jsGraph struct {
 	Nodes []D3Node `json:"nodes,omitempty"`
-	Links []Link `json:"links,omitempty"`
+	Links []Link   `json:"links,omitempty"`
 }
 
 type D3Node struct {
@@ -450,14 +450,14 @@ type Link struct {
 }
 
 func (c *Config) CreateD3jsGraph() (*D3jsGraph, error) {
-	d3AdjList, err := buildD3AdjacancyList(c.NetworkPath)
+	filenameToNode, err := linksPerFilename(c.NetworkPath)
 	if err != nil {
 		return nil, err
 	}
 
 	var g D3jsGraph
 
-	for _, n := range d3AdjList {
+	for _, n := range filenameToNode {
 
 		radius := strconv.Itoa(len(n.Links) + 2)
 
@@ -470,14 +470,16 @@ func (c *Config) CreateD3jsGraph() (*D3jsGraph, error) {
 
 		for i := range n.Links {
 			link := n.Links[i]
-			_, ok := d3AdjList[link]
+			_, ok := filenameToNode[link]
 			switch ok {
 			// TODO
-			// can't remember why we differantiate between these
+			// fix bug where we create multiple nodes for http-links.
+			// they are created since we don't verify we have created
+			// them before..
 			case true:
 				outputLink := Link{
 					Source: n.Title,
-					Target: d3AdjList[link].Title,
+					Target: filenameToNode[link].Title,
 					Value:  "2",
 				}
 				g.Links = append(g.Links, outputLink)
@@ -505,7 +507,7 @@ func (c *Config) CreateD3jsGraph() (*D3jsGraph, error) {
 // each filename contains a node object
 // which in turn includes all of its
 // filenames/http-links it links to
-func buildD3AdjacancyList(path string) (map[string]Node, error) {
+func linksPerFilename(path string) (map[string]Node, error) {
 	fileToNodeMap := make(map[string]Node)
 
 	// could be implemented with filepath.Walk(path, func(path string, info os.Fileinfo, errerror) error { //do stuff })
@@ -531,9 +533,9 @@ func buildD3AdjacancyList(path string) (map[string]Node, error) {
 
 		// TODO
 		// this is probably not we want..
-		if _, exists := fmFields["title"]; !exists {
-			continue
-		}
+		//if _, exists := fmFields["title"]; !exists {
+		//	continue
+		//}
 
 		links, err := extractMarkdownLinks(fullPath)
 		if err != nil {
